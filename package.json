@@ -1,0 +1,34 @@
+{
+  "name": "fs-streamer",
+  "id": "fs-streamer",
+  "version": "0.0.1",
+  "description": "streamer 4 fs",
+  "keywords": [ "fs", "file-system", "stream" ],
+  "author": "Irakli Gozalishvili <rfobic@gmail.com> (http://jeditoolkit.com)",
+  "homepage": "https://github.com/Gozala/fs-streamer",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Gozala/fs-streamer.git",
+    "web": "https://github.com/Gozala/fs-streamer"
+  },
+  "bugs": {
+    "web": "http://github.com/Gozala/fs-streamer/issues/"
+  },
+  "devDependencies": {
+    "test": ">=0.0.10"
+  },
+  "dependencies": {
+    "streamer": ">=0.6.1"
+  },
+  "main": "./index.js",
+  "engines": {
+    "node": "0.4.x"
+  },
+  "scripts": {
+    "test": "node tests/test-fs-streamer.js"
+  },
+  "licenses": [{
+    "type" : "MIT",
+    "url" : "http://jeditoolkit.com/LICENSE"
+  }]
+}
