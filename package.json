@@ -18,7 +18,7 @@
     "test": ">=0.0.10"
   },
   "dependencies": {
-    "streamer": ">=0.6.1"
+    "streamer": ">=0.0.4"
   },
   "main": "./index.js",
   "engines": {
