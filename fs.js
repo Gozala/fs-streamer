@@ -11,7 +11,7 @@ exports.list = function list(path) {
   return function stream(next, stop) {
     fs.readdir(path, function callback(error, entries, entry) {
       if (!error) while ((entry = entries.shift())) next(entry)
-      stop(error)
+      if (stop) stop(error)
     })
   }
 }
@@ -21,7 +21,7 @@ exports.readFile = function readFile(path, encoding) {
   return function stream(next, stop) {
     fs.readFile.apply(null, args.concat([function callback(error, data) {
       if (!error) next(data)
-      stop(error)
+      if (stop) stop(error)
     }]))
   }
 }
@@ -38,7 +38,7 @@ exports.stat = function stat(path) {
     var descriptor = { path: { value: path, enumerable: true } }
     fs.stat(path, function callback(error, stats) {
       if (!error) next(Object.create(stats, descriptor))
-      stop(error)
+      if (stop) stop(error)
     })
   }
 }
