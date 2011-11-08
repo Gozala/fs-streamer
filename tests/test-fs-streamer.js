@@ -8,6 +8,7 @@
 'use strict';
 
 exports['test list'] = require('./list')
+exports['test read'] = require('./read')
 
 if (module == require.main)
   require("test").run(exports);
