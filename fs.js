@@ -60,7 +60,8 @@ function reader(fd, options) {
   var size = options.size || 64 * 1024
   var start = options.start || 0
   var end = options.end || Infinity
-  return function stream(next) {
+  var encoding = options.encoding || 'utf-8'
+  return end <= start ? streamer.empty : function stream(next) {
     var buffer = new Buffer(size)
     fs.read(fd, buffer, 0, size, start, function onRead(error, count) {
       error ? next(error) :
@@ -76,7 +77,7 @@ exports.reader = reader
 
 function writter(fd, source, options) {
   var start = options.start || 0
-  var encoding = options.encoding || 'utf8'
+  var encoding = options.encoding || 'utf-8'
   return function stream(next) {
     source(function write(head, tail) {
       if (!tail) return next(head)
