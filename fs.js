@@ -94,7 +94,13 @@ function read(path, options) {
   options = options || {}
   options.flags = options.flags || 'r'
   return streamer.flatten(streamer.map(function(fd) {
-    return streamer.append(reader(fd, options), closer(fd))
+    // Append file closer stream, to the content stream to make sure
+    // that file descriptor is closed once done with reading.
+    return streamer.append(streamer.handle(function(error) {
+      // If read error occurs, close file descriptor and forward
+      // read error to the reader.
+      return streamer.append(closer(fd), streamer.stream(error, null))
+    }, reader(fd, options)), closer(fd))
   }, opener(path, options)))
 }
 exports.read = read
@@ -103,7 +109,9 @@ function write(path, source, options) {
   options = options || {}
   options.flags = options.flags || 'w'
   return streamer.flatten(streamer.map(function(fd) {
-    return streamer.append(writter(fd, source, options), closer(fd))
+    return streamer.append(streamer.handle(function(error) {
+      return streamer.append(closer(fd), streamer.stream(error, null))
+    }, writter(fd, source, options)), closer(fd))
   }, opener(path, options)))
 }
 exports.write = write
