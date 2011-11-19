@@ -55,6 +55,15 @@ exports['test read till'] = function(assert, done) {
   test(assert, actual, expected, 'read till `end` position')(done)
 }
 
+exports['test read unexistning'] = function(assert, done) {
+  var expected = { error: /ENOENT/, elements: [] }
+  var actual = streamer.map(String, fs.read(path.join(root, 'does_not_exist'), {
+    encoding: 'raw'
+  }))
+
+  test(assert, actual, expected, 'file does not exists')(done)
+}
+
 if (module == require.main)
   require("test").run(exports);
 
