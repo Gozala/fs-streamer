@@ -8,6 +8,7 @@
 'use strict';
 
 var fs = require('fs')
+var binding = process.binding('fs')
 var streamer = require('streamer/core')
 
 exports.stat = function stat(path) {
@@ -63,7 +64,7 @@ function reader(fd, options) {
   var encoding = options.encoding || 'utf-8'
   return end <= start ? streamer.empty : function stream(next) {
     var buffer = new Buffer(size)
-    fs.read(fd, buffer, 0, size, start, function onRead(error, count) {
+    binding.read(fd, buffer, 0, size, start, function onRead(error, count) {
       error ? next(error) :
       count === 0 ? next() : next(buffer.slice(0, count), reader(fd, {
         size: size,
