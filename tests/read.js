@@ -64,12 +64,19 @@ exports['test read unexistning'] = function(assert, done) {
   test(assert, actual, expected, 'file does not exists')(done)
 }
 
-exports['test read'] = function(assert, done) {
+exports['test read unicode'] = function(assert, done) {
   var expected = []
   for (var i = 10000; --i >= 0;) expected[i] = '\u2026'
   var actual = streamer.map(String, fs.read(path.join(root, 'elipses.txt')))
 
   test(assert, actual, [expected.join('')], 'elipses.txt read correctly')(done)
+}
+
+exports['test read empty'] = function(assert, done) {
+ var expected = []
+ var actual = fs.read(path.join(root, 'empty.txt'))
+
+ test(assert, actual, expected, 'read empty file')(done)
 }
 
 if (module == require.main)
