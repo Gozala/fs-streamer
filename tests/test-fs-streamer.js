@@ -9,6 +9,7 @@
 
 exports['test list'] = require('./list')
 exports['test stat'] = require('./stat')
+exports['test remove'] = require('./remove')
 exports['test read'] = require('./read')
 
 if (module == require.main)

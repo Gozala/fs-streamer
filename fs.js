@@ -31,6 +31,15 @@ function list(path) {
 }
 exports.list = list
 
+function remove(path) {
+  return function stream(next) {
+    binding.unlink(path, function onUnlink(error) {
+      error ? next(error) : streamer.empty(next)
+    })
+  }
+}
+exports.remove = remove
+
 function opener(path, options) {
   options = options || {}
   var flags = options.flags || 'r'
