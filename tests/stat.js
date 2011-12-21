@@ -10,7 +10,7 @@
 var fs = require('../fs')
 var streamer = require('streamer')
 var path = require('path')
-var root = path.join(path.dirname(module.filename), './fixtures/stat/')
+var root = path.join(path.dirname(module.filename), './fixtures/')
 var test = require('./test-utils').test
 
 function expectations(stat) {

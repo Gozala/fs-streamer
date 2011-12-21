@@ -9,13 +9,18 @@
 
 var fs = require('../fs')
 var path = require('path')
-var root = path.join(path.dirname(module.filename), './fixtures/list/')
+var root = path.join(path.dirname(module.filename), './fixtures/')
+var streamer = require('streamer')
 var test = require('./test-utils').test
 
 exports['test list fixtures'] = function(assert, done) {
-  var actual = fs.list(root)
-  var expected = ['file-1', 'file-2.js', 'folder-1', 'folder-2']
-  test(assert, actual, expected, 'list entries')(done)
+  var actual = streamer.filter(function(entry) {
+    return entry !== '.DS_Store'
+  }, fs.list(root))
+  test(assert, actual, [
+    'elipses.txt', 'empty.txt', 'file-1', 'file-2.js', 'folder-1', 'folder-2',
+    'x.txt'
+  ], 'list entries')(done)
 }
 
 exports['test list non-existing'] = function(assert, done) {
