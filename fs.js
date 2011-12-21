@@ -11,15 +11,16 @@ var fs = require('fs')
 var binding = process.binding('fs')
 var streamer = require('streamer/core')
 
-exports.stat = function stat(path) {
-  return function stream(next, stop) {
+function stat(path) {
+  return function stream(next) {
     var descriptor = { path: { value: path, enumerable: true } }
-    fs.stat(path, function callback(error, stats) {
-      if (!error) next(Object.create(stats, descriptor))
-      if (stop) stop(error)
+    fs.stat(path, function onStat(error, stats) {
+      error ? next(error)
+            : streamer.list(Object.create(stats, descriptor))(next)
     })
   }
 }
+exports.stat = stat
 
 exports.list = function list(path) {
   return function stream(next) {
