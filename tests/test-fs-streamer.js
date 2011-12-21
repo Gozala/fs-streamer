@@ -11,6 +11,7 @@ exports['test list'] = require('./list')
 exports['test stat'] = require('./stat')
 exports['test remove'] = require('./remove')
 exports['test read'] = require('./read')
+exports['test write'] = require('./write')
 
 if (module == require.main)
   require("test").run(exports);
