@@ -22,13 +22,14 @@ function stat(path) {
 }
 exports.stat = stat
 
-exports.list = function list(path) {
+function list(path) {
   return function stream(next) {
-    fs.readdir(path, function callback(error, entries) {
+    fs.readdir(path, function onReaddir(error, entries) {
       error ? next(error) : streamer.list.apply(null, entries)(next)
     })
   }
 }
+exports.list = list
 
 function opener(path, options) {
   options = options || {}
