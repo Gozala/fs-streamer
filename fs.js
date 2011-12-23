@@ -128,10 +128,20 @@ function read(path, options) {
 exports.read = read
 
 function write(path, source, options) {
+  /**
+  Writes content from the given `source` stream to a file under the given
+  `path`.  Optional `options` object may be used to configure writing in
+  further details. By default file will be open with an `'w'` flag and `'0666'`
+  mode, alternatively `options.flags` and `options.mode` strings may be used to
+  override those defaults. By default file is written from the begining, but
+  this could be overridden via `options.start`. As result stream of 0 elements
+  is returned, which will end once write is complete. All errors will propagate
+  to a resulting stream.
+  **/
   options = options || {}
   options.flags = options.flags || 'w'
   return streamer.flatten(streamer.map(function(fd) {
-    return streamer.append(streamer.handle(function(error) {
+    return streamer.append(streamer.handle(function onError(error) {
       return streamer.append(closer(fd), streamer.stream(error, null))
     }, writter(fd, source, options)), closer(fd))
   }, opener(path, options)))
