@@ -11,7 +11,7 @@ var fs = require('../fs')
 var streamer = require('streamer')
 var path = require('path')
 var root = path.join(path.dirname(module.filename), './fixtures/')
-var test = require('./test-utils').test
+var Assert = require('./assert').Assert
 
 function expectations(stat) {
   return {
@@ -21,25 +21,31 @@ function expectations(stat) {
   }
 }
 
-exports['test stat pwd'] = function(assert, done) {
+exports.Assert = Assert
+exports['test stat pwd'] = function(expect, complete) {
   var expected = [{ isDirectory: true, isFile: false, mtime: true }]
   var actual = streamer.map(expectations, fs.stat('.'));
 
-  test(assert, actual, expected, 'pwd stat')(done)
+  expect(streamer.map(expectations, fs.stat('.'))).to.be({
+    isDirectory: true,
+    isFile: false,
+    mtime: true
+  }).and.then(complete)
 }
 
-exports['test stat file'] = function(assert, done) {
-  var expected = [{ isDirectory: false, isFile: true, mtime: true }]
-  var actual = streamer.map(expectations, fs.stat(path.join(root, 'x.txt')))
+exports['test stat file'] = function(expect, complete) {
+  var stat = streamer.map(expectations, fs.stat(path.join(root, 'x.txt')))
 
-  test(assert, actual, expected, 'existing file stat')(done)
+  expect(stat).to.be({
+    isDirectory: false,
+    isFile: true,
+    mtime: true
+  }).and.then(complete)
 }
 
-exports['test stat non-existing'] = function(assert, done) {
-  var expected = { error: /ENOENT/, elements: [] }
-  var actual = fs.stat(path.join(root, 'does_not_exist'))
-
-  test(assert, actual, expected, 'file does not exists')(done)
+exports['test stat non-existing'] = function(expect, complete) {
+  var stream = fs.stat(path.join(root, 'does_not_exist'))
+  expect(stream).to.have.an.error.matching(/ENOENT/).then(complete)
 }
 
 if (module == require.main)
