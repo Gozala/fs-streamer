@@ -11,22 +11,27 @@ var fs = require('../fs')
 var path = require('path')
 var root = path.join(path.dirname(module.filename), './fixtures/')
 var streamer = require('streamer')
-var test = require('./test-utils').test
+var Assert = require('./assert').Assert
 
-exports['test list fixtures'] = function(assert, done) {
-  var actual = streamer.filter(function(entry) {
+exports.Assert = Assert
+exports['test list fixtures'] = function(expect, complete) {
+  var entries = streamer.filter(function(entry) {
     return entry !== '.DS_Store'
   }, fs.list(root))
-  test(assert, actual, [
-    'elipses.txt', 'empty.txt', 'file-1', 'file-2.js', 'folder-1', 'folder-2',
-    'x.txt'
-  ], 'list entries')(done)
+
+  expect(entries).to.be(
+    'elipses.txt',
+    'empty.txt',
+    'file-1',
+    'file-2.js',
+    'folder-1',
+    'folder-2',
+    'x.txt').and.then(complete)
 }
 
-exports['test list non-existing'] = function(assert, done) {
-  var actual = fs.list(path.join(root, '<nonexisting>'))
-  var expected = { elements: [], error: /ENOENT/ }
-  test(assert, actual, expected, 'list non existing')(done)
+exports['test list non-existing'] = function(expect, complete) {
+  var stream = fs.list(path.join(root, '<nonexisting>'))
+  expect(stream).to.have.an.error(/ENOENT/).and.then(complete)
 }
 
 if (module == require.main)
