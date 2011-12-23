@@ -103,12 +103,22 @@ function writter(fd, source, options) {
 exports.writter = writter
 
 function read(path, options) {
+  /**
+  Returns stream of contents of the file under the given `path`. Optional
+  `options` object may be used to configure reading in further details. By
+  default file will be open with an `'r'` flag and `'0666'` mode, alternatively
+  `options.flags` and `options.mode` strings may be used to override those
+  defaults. By default complete file is read, but `options.start` and
+  `options.end` integers may be passed to read out just a given range. Stream
+  elements are buffers of content, size of those chunks may be configured via
+  `options.size` option.
+  **/
   options = options || {}
   options.flags = options.flags || 'r'
   return streamer.flatten(streamer.map(function(fd) {
     // Append file closer stream, to the content stream to make sure
     // that file descriptor is closed once done with reading.
-    return streamer.append(streamer.handle(function(error) {
+    return streamer.append(streamer.handle(function onError(error) {
       // If read error occurs, close file descriptor and forward
       // read error to the reader.
       return streamer.append(closer(fd), streamer.stream(error, null))
