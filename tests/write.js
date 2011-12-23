@@ -11,17 +11,17 @@ var fs = require('../fs')
 var streamer = require('streamer')
 var path = require('path')
 var root = path.join(path.dirname(module.filename), './fixtures/')
-var test = require('./test-utils').test
+var Assert = require('./assert').Assert
 
-exports['test read fixtures'] = function(assert, done) {
+exports.Assert = Assert
+exports['test write to file'] = function(assert, complete) {
   var file = path.join(root, 'write.txt')
-  var expected = '012345678910'
-  var data = streamer.list(expected)
-  test(assert, fs.write(file, data), [], 'write')(function() {
-    test(assert, streamer.map(String, fs.read(file)), [ expected ], 'written')(function() {
-      test(assert, fs.remove(file), [], 'remove')(done)
-    })
-  })
+  var content = '012345678910'
+
+  assert(fs.write(file, streamer.list(content))).to.an.empty()
+  assert(streamer.map(String, fs.read(file))).to(content)
+  assert(fs.remove(file)).to.an.empty().and.then(complete)
+}
 }
 
 if (module == require.main)
