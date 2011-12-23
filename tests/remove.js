@@ -11,23 +11,22 @@ var fs = require('../fs')
 var streamer = require('streamer')
 var path = require('path')
 var root = path.join(path.dirname(module.filename), './fixtures/')
-var test = require('./test-utils').test
+var Assert = require('./assert').Assert
 
-exports['test remove non-existing'] = function(assert, done) {
-  var expected = { error: /ENOENT/, elements: [] }
-  var actual = fs.remove(path.join(root, 'does_not_exist'))
-
-  test(assert, actual, expected, 'file does not exists')(done)
+exports.Assert = Assert
+exports['test remove non-existing'] = function(expect, complete) {
+  var stream = fs.remove(path.join(root, 'does_not_exist'))
+  expect(stream).to.stop.with.an.error(/ENOENT/).then(complete)
 }
 
-exports['test remove file'] = function(assert, done) {
+exports['test remove file'] = function(expect, complete) {
   var file = path.join('temp')
+  var createFile = fs.write(file, streamer.empty)
+  var removeFile = fs.remove(file)
 
-  test(assert, fs.write(file, streamer.empty), [], 'create file')(function() {
-    test(assert, fs.remove(file), [], 'remove file')(function() {
-      test(assert, fs.remove(file), { error: /ENOENT/, elements: [] }, 'removed')(done)
-    })
-  })
+  expect(createFile).to.be.empty()
+  expect(removeFile).to.be.empty()
+  expect(removeFile).to.stop.with.an.error(/ENOENT/).then(complete)
 }
 
 if (module == require.main)
