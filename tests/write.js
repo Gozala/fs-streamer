@@ -22,6 +22,34 @@ exports['test write to file'] = function(assert, complete) {
   assert(streamer.map(String, fs.read(file))).to(content)
   assert(fs.remove(file)).to.an.empty().and.then(complete)
 }
+
+exports['test append / overwrite'] = function(expect, complete) {
+  var file = path.join(root, 'append-overwrite.txt')
+
+  var fileContent = streamer.map(String, fs.read(file, { encoding: 'utf-8' }))
+  var initalWrite = fs.write(file, streamer.list('abcdefghijklmnopqrstuvwxyz'))
+  var append = fs.write(file, streamer.list('123456'), {
+    start: 10,
+    flags: 'r+'
+  });
+  var overwrite = fs.write(file, streamer.list('\u2026\u2026'), {
+    start: 10,
+    flags: 'r+'
+  });
+  var stupidOverwrite = fs.write(file, streamer.list('boom'), {
+    start: -5,
+    flags: 'r+'
+  });
+
+  expect(initalWrite).to.be.empty()
+  expect(fileContent).to.be('abcdefghijklmnopqrstuvwxyz')
+  expect(append).to.be.empty()
+  expect(fileContent).to.be('abcdefghij123456qrstuvwxyz')
+  expect(overwrite).to.be.empty()
+  expect(fileContent).to.be('abcdefghij\u2026\u2026qrstuvwxyz')
+  expect(stupidOverwrite).to.be.empty()
+  expect(fileContent).to.be('boomefghij\u2026\u2026qrstuvwxyz')
+  expect(fs.remove(file)).to.be.empty().then(complete)
 }
 
 if (module == require.main)
