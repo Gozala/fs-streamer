@@ -52,6 +52,26 @@ exports['test append / overwrite'] = function(expect, complete) {
   expect(fs.remove(file)).to.be.empty().then(complete)
 }
 
+exports['test write a lot'] = function(expect, complete) {
+  var N = 10240
+  var file = path.join(root, 'out.txt')
+  var line = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaa\n'
+
+  function content(index) {
+    index = index || 0
+    return function stream(next) {
+      next(line, index < N ? content(index + 1) : streamer.empty)
+    }
+  }
+
+  expect(fs.write(file, content())).to.be.empty()
+  expect(streamer.map(String, fs.read(file, {
+    start: line.length * (N  - 3),
+    size: line.length
+  }))).to.be(line, line, line, line)
+  expect(fs.remove(file)).to.be.empty().then(complete)
+}
+
 if (module == require.main)
   require("test").run(exports);
 
