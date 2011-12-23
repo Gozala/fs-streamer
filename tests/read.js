@@ -11,72 +11,68 @@ var fs = require('../fs')
 var streamer = require('streamer')
 var path = require('path')
 var root = path.join(path.dirname(module.filename), './fixtures/')
-var test = require('./test-utils').test
+var Assert = require('./assert').Assert
 
-exports['test read fixtures'] = function(assert, done) {
-  var expected = [ 'xyz\n' ]
-  var actual = streamer.map(String, fs.read(path.join(root, 'x.txt'), {
+exports.Assert = Assert
+exports['test read fixtures'] = function(expect, complete) {
+  var content = 'xyz\n'
+  var stream = streamer.map(String, fs.read(path.join(root, 'x.txt'), {
     encoding: 'utf-8',
-    length: expected.join('').length
+    length: content.length
   }))
 
-  test(assert, actual, expected, 'read as expected')(done)
+  expect(stream).to.be('xyz\n').then(complete)
 }
 
-exports['test read in chuncks'] = function(assert, done) {
-  var expected = [ 'xy', 'z\n' ]
-  var actual = streamer.map(String, fs.read(path.join(root, 'x.txt'), {
+exports['test read in chuncks'] = function(expect, complete) {
+  var stream = streamer.map(String, fs.read(path.join(root, 'x.txt'), {
     encoding: 'utf-8',
-    size: expected[0].length
+    size: 2
   }))
 
-  test(assert, actual, expected, 'read in chuncks of given `size`')(done)
+  expect(stream).elements.to.be('xy', 'z\n').then(complete)
 }
 
-exports['test read with offset'] = function(assert, done) {
-  var expected = [ 'yz', '\n' ]
-  var actual = streamer.map(String, fs.read(path.join(root, 'x.txt'), {
+exports['test read with offset'] = function(expect, complete) {
+  var stream = streamer.map(String, fs.read(path.join(root, 'x.txt'), {
     encoding: 'utf-8',
-    size: expected[0].length,
+    size: 2,
     start: 1
   }))
 
-  test(assert, actual, expected, 'read as from the `start` position')(done)
+  expect(stream).to.be('yz', '\n').then(complete)
 }
 
-exports['test read till'] = function(assert, done) {
-  var expected = [ 'y', 'z' ]
-  var actual = streamer.map(String, fs.read(path.join(root, 'x.txt'), {
+exports['test read till'] = function(expect, complete) {
+  var stream = streamer.map(String, fs.read(path.join(root, 'x.txt'), {
     start: 1,
     size: 1,
     end: 3
   }))
 
-  test(assert, actual, expected, 'read till `end` position')(done)
+  expect(stream).elements.to.be('y', 'z').and.then(complete)
 }
 
-exports['test read unexistning'] = function(assert, done) {
-  var expected = { error: /ENOENT/, elements: [] }
-  var actual = streamer.map(String, fs.read(path.join(root, 'does_not_exist'), {
+exports['test read unexistning'] = function(expect, complete) {
+  var stream = streamer.map(String, fs.read(path.join(root, 'does_not_exist'), {
     encoding: 'raw'
   }))
 
-  test(assert, actual, expected, 'file does not exists')(done)
+  expect(stream).to.stop.with.an.error(/ENOENT/).and.then(complete)
 }
 
-exports['test read unicode'] = function(assert, done) {
+exports['test read unicode'] = function(expect, complete) {
   var expected = []
   for (var i = 10000; --i >= 0;) expected[i] = '\u2026'
-  var actual = streamer.map(String, fs.read(path.join(root, 'elipses.txt')))
+  var stream = streamer.map(String, fs.read(path.join(root, 'elipses.txt')))
 
-  test(assert, actual, [expected.join('')], 'elipses.txt read correctly')(done)
+  expect(stream).elements.to.be(expected.join('')).then(complete)
 }
 
-exports['test read empty'] = function(assert, done) {
- var expected = []
- var actual = fs.read(path.join(root, 'empty.txt'))
+exports['test read empty'] = function(expect, complete) {
+  var stream = fs.read(path.join(root, 'empty.txt'))
 
- test(assert, actual, expected, 'read empty file')(done)
+  expect(stream).to.be.empty().then(complete)
 }
 
 if (module == require.main)
