@@ -94,9 +94,12 @@ function writter(fd, source, options) {
     source(function write(head, tail) {
       if (!tail) return next(head)
       var data = Buffer.isBuffer(head) ? head : new Buffer(head, encoding)
-      fs.write(fd, data, 0, data.length, start, function onWrite(error, count) {
-        error ? next(error) : writter(fd, tail, { start: start + count })(next)
-      })
+      data.length ? binding.write(fd, data, 0, data.length, start, function onWrite(error, count) {
+        error ? next(error) : writter(fd, tail, {
+          start: start + count,
+          encoding: encoding
+        })(next)
+      }) : writter(fd, tail, { start: start, encoding: encoding })(next)
     })
   }
 }
