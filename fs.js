@@ -160,4 +160,23 @@ function write(path, source, options) {
 }
 exports.write = write
 
+function makeDirectory(path, options) {
+  var mode = options && options.mode
+  function stream(next) {
+    binding.mkdir(path, mode, function onMake(error) {
+      error ? next(error) : streamer.empty(next)
+    })
+  }
+}
+exports.makeDirectory = makeDirectory
+
+function removeDirectory(path) {
+  return function stream(next) {
+    binding.rmdir(path, function onRemove(error) {
+      error ? next(error) : streamer.empty(next)
+    })
+  }
+}
+exports.removeDirectory = removeDirectory
+
 });
