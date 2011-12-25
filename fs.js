@@ -72,7 +72,6 @@ function reader(fd, options) {
   var size = options.size || 64 * 1024
   var start = options.start || 0
   var end = options.end || Infinity
-  var encoding = options.encoding || 'raw'
   return end <= start ? streamer.empty : function stream(next) {
     var buffer = new Buffer(size)
     binding.read(fd, buffer, 0, size, start, function onRead(error, count) {
@@ -81,8 +80,7 @@ function reader(fd, options) {
       next(buffer.slice(0, count), reader(fd, {
         size: size,
         start: start + count,
-        end: end,
-        encoding: encoding
+        end: end
       }))
     })
   }
