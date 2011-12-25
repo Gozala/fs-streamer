@@ -72,15 +72,17 @@ function reader(fd, options) {
   var size = options.size || 64 * 1024
   var start = options.start || 0
   var end = options.end || Infinity
-  var encoding = options.encoding || 'utf-8'
+  var encoding = options.encoding || 'raw'
   return end <= start ? streamer.empty : function stream(next) {
     var buffer = new Buffer(size)
     binding.read(fd, buffer, 0, size, start, function onRead(error, count) {
       error ? next(error) :
-      count === 0 ? next() : next(buffer.slice(0, count), reader(fd, {
+      count === 0 ? next() :
+      next(buffer.slice(0, count), reader(fd, {
         size: size,
         start: start + count,
-        end: end
+        end: end,
+        encoding: encoding
       }))
     })
   }
@@ -102,6 +104,10 @@ function writter(fd, source, options) {
 }
 exports.writter = writter
 
+function decoder(encoding) {
+  return function decode(buffer) { return buffer.toString(encoding) }
+}
+
 function read(path, options) {
   /**
   Returns stream of contents of the file under the given `path`. Optional
@@ -115,14 +121,19 @@ function read(path, options) {
   **/
   options = options || {}
   options.flags = options.flags || 'r'
+  var encoding = options.encoding || 'raw'
   return streamer.flatten(streamer.map(function(fd) {
+    // If optional `encoding` is passed, map buffers to strings with a given
+    // encoding.
+    var content = encoding === 'raw' ? reader(fd, options) :
+                  streamer.map(decoder(encoding), reader(fd, options))
     // Append file closer stream, to the content stream to make sure
     // that file descriptor is closed once done with reading.
     return streamer.append(streamer.handle(function onError(error) {
       // If read error occurs, close file descriptor and forward
       // read error to the reader.
       return streamer.append(closer(fd), streamer.stream(error, null))
-    }, reader(fd, options)), closer(fd))
+    }, content, closer(fd)))
   }, opener(path, options)))
 }
 exports.read = read

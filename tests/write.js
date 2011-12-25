@@ -26,7 +26,7 @@ exports['test write to file'] = function(assert, complete) {
 exports['test append / overwrite'] = function(expect, complete) {
   var file = path.join(root, 'append-overwrite.txt')
 
-  var fileContent = streamer.map(String, fs.read(file, { encoding: 'utf-8' }))
+  var fileContent = fs.read(file, { encoding: 'utf-8' })
   var initalWrite = fs.write(file, streamer.list('abcdefghijklmnopqrstuvwxyz'))
   var append = fs.write(file, streamer.list('123456'), {
     start: 10,
@@ -65,10 +65,11 @@ exports['test write a lot'] = function(expect, complete) {
   }
 
   expect(fs.write(file, content())).to.be.empty()
-  expect(streamer.map(String, fs.read(file, {
+  expect(fs.read(file, {
     start: line.length * (N  - 3),
-    size: line.length
-  }))).to.be(line, line, line, line)
+    size: line.length,
+    encoding: 'utf-8'
+  })).to.be(line, line, line, line)
   expect(fs.remove(file)).to.be.empty().then(complete)
 }
 

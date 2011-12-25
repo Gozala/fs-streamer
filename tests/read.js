@@ -16,29 +16,53 @@ var Assert = require('./assert').Assert
 exports.Assert = Assert
 exports['test read fixtures'] = function(expect, complete) {
   var content = 'xyz\n'
-  var stream = streamer.map(String, fs.read(path.join(root, 'x.txt'), {
+  var stream = fs.read(path.join(root, 'x.txt'), {
     encoding: 'utf-8',
     length: content.length
-  }))
+  })
 
   expect(stream).to.be('xyz\n').then(complete)
 }
 
+exports['test read in buffers'] = function(expect, complete) {
+  var stream = fs.read(path.join(root, 'x.txt'))
+  var streamContent = streamer.map(function(buffer) {
+    return { isBuffer: Buffer.isBuffer(buffer), string: buffer.toString() }
+  }, stream)
+
+  expect(streamContent).elements.to.be({
+    isBuffer: true,
+    string: 'xyz\n'
+  }).then(complete)
+}
+
+exports['test encoding raw streams buffers'] = function(expect, complete) {
+  var stream = fs.read(path.join(root, 'x.txt'), { encoding: 'raw' })
+  var streamContent = streamer.map(function(buffer) {
+    return { isBuffer: Buffer.isBuffer(buffer), string: buffer.toString() }
+  }, stream)
+
+  expect(streamContent).elements.to.be({
+    isBuffer: true,
+    string: 'xyz\n'
+  }).then(complete)
+}
+
 exports['test read in chuncks'] = function(expect, complete) {
-  var stream = streamer.map(String, fs.read(path.join(root, 'x.txt'), {
+  var stream = fs.read(path.join(root, 'x.txt'), {
     encoding: 'utf-8',
     size: 2
-  }))
+  })
 
   expect(stream).elements.to.be('xy', 'z\n').then(complete)
 }
 
 exports['test read with offset'] = function(expect, complete) {
-  var stream = streamer.map(String, fs.read(path.join(root, 'x.txt'), {
+  var stream = fs.read(path.join(root, 'x.txt'), {
     encoding: 'utf-8',
     size: 2,
     start: 1
-  }))
+  })
 
   expect(stream).to.be('yz', '\n').then(complete)
 }
@@ -54,9 +78,7 @@ exports['test read till'] = function(expect, complete) {
 }
 
 exports['test read unexistning'] = function(expect, complete) {
-  var stream = streamer.map(String, fs.read(path.join(root, 'does_not_exist'), {
-    encoding: 'raw'
-  }))
+  var stream = fs.read(path.join(root, 'does_not_exist'))
 
   expect(stream).to.stop.with.an.error(/ENOENT/).and.then(complete)
 }
