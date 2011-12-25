@@ -43,7 +43,7 @@ exports.remove = remove
 function opener(path, options) {
   options = options || {}
   var flags = options.flags || 'r'
-  var mode =  parseInt(options.mode || '0666', 8)
+  var mode =  options.mode || '0666'
   return function stream(next) {
     fs.open(path, flags, mode, function onOpen(error, fd) {
       error ? next(error) : next(fd, streamer.empty)
