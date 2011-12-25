@@ -14,7 +14,7 @@ var streamer = require('streamer/core')
 function stat(path) {
   return function stream(next) {
     var descriptor = { path: { value: path, enumerable: true } }
-    fs.stat(path, function onStat(error, stats) {
+    binding.stat(path, function onStat(error, stats) {
       error ? next(error)
             : streamer.list(Object.create(stats, descriptor))(next)
     })
@@ -24,7 +24,7 @@ exports.stat = stat
 
 function list(path) {
   return function stream(next) {
-    fs.readdir(path, function onReaddir(error, entries) {
+    binding.readdir(path, function onReaddir(error, entries) {
       error ? next(error) : streamer.list.apply(null, entries)(next)
     })
   }
@@ -58,7 +58,7 @@ function closer(fd) {
   reaches end.
   **/
   return function stream(next) {
-    fs.close(fd, next)
+    binding.close(fd, next)
   }
 }
 
