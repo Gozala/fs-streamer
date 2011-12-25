@@ -103,6 +103,32 @@ exports['test write in base64'] = function(expect, complete) {
   expect(fs.remove(file)).to.be.empty().and.then(complete)
 }
 
+exports['test write mode'] = function(expect, complete) {
+  var content = 'ümlaut.'
+  var file = path.join(root, 'write-mode.txt')
+  var stream = fs.write(file, streamer.list('', content, ''), {
+    mode: '0644',
+    encoding: 'utf-8'
+  })
+
+  expect(stream).to.be.empty()
+  expect(fs.read(file, { encoding: 'utf8' })).to.be(content)
+  expect(fs.remove(file)).to.be.empty().then(complete)
+}
+
+exports['test pipe write'] = function(expect, complete) {
+  var sourceFile = path.join(root, 'y.txt')
+  var targetFile = path.join(root, 'piped.txt')
+  var source = fs.read(sourceFile, { size: 7 })
+  var target = fs.read(targetFile, { encoding: 'utf-8'})
+  var pipe = fs.write(targetFile, source)
+
+  expect(target).to.have.an.error(/ENOENT/)
+  expect(pipe).to.be.empty()
+  expect(target).to.be('Hello streamer! How is life? Does all your tests pass?')
+  expect(fs.remove(targetFile)).to.be.empty().and.then(complete)
+}
+
 if (module == require.main)
   require("test").run(exports);
 

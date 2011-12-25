@@ -26,7 +26,8 @@ exports['test list fixtures'] = function(expect, complete) {
     'file-2.js',
     'folder-1',
     'folder-2',
-    'x.txt').and.then(complete)
+    'x.txt',
+    'y.txt').and.then(complete)
 }
 
 exports['test list non-existing'] = function(expect, complete) {
