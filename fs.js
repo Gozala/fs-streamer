@@ -9,59 +9,105 @@
 
 var fs = require('fs')
 var binding = process.binding('fs')
-var streamer = require('streamer/core')
+var streamer = require('streamer/core'), Stream = streamer.Stream
 
-function stat(path) {
-  return function stream(next) {
-    var descriptor = { path: { value: path, enumerable: true } }
-    binding.stat(path, function onStat(error, stats) {
-      error ? next(error)
-            : streamer.list(Object.create(stats, descriptor))(next)
-    })
+function identity(value) { return value }
+
+exports.decoder = decoder
+function decoder(encoding) {
+  return encoding === 'binary' ? identity : function decode(buffer) {
+    return buffer.toString(encoding)
   }
 }
+
 exports.stat = stat
-
-function list(path) {
-  return function stream(next) {
-    binding.readdir(path, function onReaddir(error, entries) {
-      error ? next(error) : streamer.list.apply(null, entries)(next)
-    })
-  }
+function stat(path) {
+  var deferred = streamer.defer()
+  binding.stat(path, function stated(error, stats) {
+    if (error) deferred.reject(error)
+    else deferred.resolve(Stream(Object.create(stats, {
+      path: { value: path, enumerable: true }
+    })))
+  })
+  return deferred.promise
 }
-exports.list = list
 
+exports.list = list
+function list(path) {
+  var deferred = streamer.defer()
+  binding.readdir(path, function read(error, entries) {
+    if (error) deferred.reject(error)
+    else deferred.resolve(Stream.from(entries))
+  })
+  return deferred.promise
+}
+
+exports.remove = remove
 function remove(path) {
-  return function stream(next) {
-    binding.unlink(path, function onUnlink(error) {
-      error ? next(error) : streamer.empty(next)
+  return streamer.promise(function() {
+    var deferred = streamer.defer()
+    binding.unlink(path, function unlinked(error) {
+      if (error) deferred.reject(error)
+      else deferred.resolve(Stream.empty)
     })
-  }
+    return deferred.promise
+  })
 }
 exports.remove = remove
 
-function opener(path, options) {
-  options = options || {}
-  var flags = options.flags || 'r'
-  var mode =  options.mode || '0666'
-  return function stream(next) {
-    fs.open(path, flags, mode, function onOpen(error, fd) {
-      error ? next(error) : next(fd, streamer.empty)
-    })
-  }
+exports.makeDirectory = makeDirectory
+function makeDirectory(path, options) {
+  var mode = options && options.mode
+  var deferred = streamer.defer()
+  binding.mkdir(path, mode, function made(error) {
+    if (error) deferred.reject(error)
+    else deferred.resolve(Stream.empty)
+  })
+  return deferred.promise
 }
 
-function closer(fd) {
+exports.removeDirectory = removeDirectory
+function removeDirectory(path) {
+  var deferred = streamer.defer()
+  binding.rmdir(path, function removed(error) {
+    if (error) deferred.reject(error)
+    else deferred.resolve(Stream.empty)
+  })
+  return deferred.promise
+}
+
+exports.open = open
+function open(path, options) {
+  var flags = options && options.flags || 'r'
+  var mode =  options && options.mode || '0666'
+  return streamer.promise(function() {
+    var deferred = streamer.defer()
+    fs.open(path, flags, mode, function opened(error, fd) {
+      if (error) deferred.reject(error)
+      else deferred.resolve(Stream(fd))
+    })
+    return deferred.promise
+  })
+}
+
+exports.close = close
+function close(stream) {
   /**
   Takes file descriptor and returns stream that closes given descriptor on
   stream consumption and either propagates close error to the consumer or
   reaches end.
   **/
-  return function stream(next) {
-    binding.close(fd, next)
-  }
+  return streamer.flatten(streamer.map(function(fd) {
+    var deferred = streamer.defer()
+    binding.close(fd, function closed(error) {
+      if (error) deferred.reject(error)
+      else deferred.resolve(Stream.empty)
+    })
+    return deferred.promise
+  }, stream))
 }
 
+exports.reader = reader
 function reader(fd, options) {
   /**
   Takes file descriptor and (optional) options object that may contain
@@ -72,43 +118,25 @@ function reader(fd, options) {
   var size = options.size || 64 * 1024
   var start = options.start || 0
   var end = options.end || Infinity
-  return end <= start ? streamer.empty : function stream(next) {
-    var buffer = new Buffer(size)
-    binding.read(fd, buffer, 0, size, start, function onRead(error, count) {
-      error ? next(error) :
-      count === 0 ? next() :
-      next(buffer.slice(0, count), reader(fd, {
+  if (end <= start) return Stream.empty
+
+  var buffer = Buffer(size)
+  var deferred = streamer.defer()
+  binding.read(fd, buffer, 0, size, start, function read(error, count) {
+    if (error) deferred.reject(error)
+    else if (count === 0) deferred.resolve(Stream.empty)
+    else deferred.resolve(Stream(buffer.slice(0, count), function rest() {
+      return reader(fd, {
         size: size,
         start: start + count,
         end: end
-      }))
-    })
-  }
-}
-exports.reader = reader
-
-function writter(fd, source, options) {
-  var start = options.start || 0
-  var encoding = options.encoding || 'utf-8'
-  return function stream(next) {
-    source(function write(head, tail) {
-      if (!tail) return next(head)
-      var data = Buffer.isBuffer(head) ? head : new Buffer(head, encoding)
-      data.length ? binding.write(fd, data, 0, data.length, start, function onWrite(error, count) {
-        error ? next(error) : writter(fd, tail, {
-          start: start + count,
-          encoding: encoding
-        })(next)
-      }) : writter(fd, tail, { start: start, encoding: encoding })(next)
-    })
-  }
-}
-exports.writter = writter
-
-function decoder(encoding) {
-  return function decode(buffer) { return buffer.toString(encoding) }
+      })
+    }))
+  })
+  return deferred.promise
 }
 
+exports.read = read
 function read(path, options) {
   /**
   Returns stream of contents of the file under the given `path`. Optional
@@ -117,28 +145,46 @@ function read(path, options) {
   `options.flags` and `options.mode` strings may be used to override those
   defaults. By default complete file is read, but `options.start` and
   `options.end` integers may be passed to read out just a given range. Stream
-  elements are buffers of content, size of those chunks may be configured via
+  items are buffers of content, size of those chunks may be configured via
   `options.size` option.
   **/
   options = options || {}
+  options.encoding = options.encoding || 'binary'
   options.flags = options.flags || 'r'
-  var encoding = options.encoding || 'raw'
-  return streamer.flatten(streamer.map(function(fd) {
-    // If optional `encoding` is passed, map buffers to strings with a given
-    // encoding.
-    var content = encoding === 'raw' ? reader(fd, options) :
-                  streamer.map(decoder(encoding), reader(fd, options))
-    // Append file closer stream, to the content stream to make sure
-    // that file descriptor is closed once done with reading.
-    return streamer.append(streamer.handle(function onError(error) {
-      // If read error occurs, close file descriptor and forward
-      // read error to the reader.
-      return streamer.append(closer(fd), streamer.stream(error, null))
-    }, content, closer(fd)))
-  }, opener(path, options)))
-}
-exports.read = read
+  var file = typeof(path) === 'string' ? open(path, options) : path
+  var content = ((streamer.run.on)
+    (file)
+    (streamer.head)
+    (streamer.map, function opened(fd) { return reader(fd, options) })
+    (streamer.flatten)
+    (streamer.map, decoder(options.encoding)))
 
+  content.file = file
+  return content
+}
+
+exports.writter = writter
+function writter(fd, content, options) {
+  var start = options.start || 0
+  var encoding = options.encoding || 'utf-8'
+  return streamer.edit(function(stream) {
+    var data = Buffer.isBuffer(stream.head) ? stream.head
+                                            : new Buffer(stream.head, encoding)
+
+    if (!data.length) return writter(fd, stream.tail, options)
+    var deferred = streamer.defer()
+    binding.write(fd, data, 0, data.length, start, function wrote(error, count) {
+      if (error) deferred.reject(error)
+      else deferred.resolve(writter(fd, stream.tail, {
+        encoding: encoding,
+        start: start + count
+      }))
+    })
+    return deferred.promise
+  }, content)
+}
+
+exports.write = write
 function write(path, source, options) {
   /**
   Writes content from the given `source` stream to a file under the given
@@ -146,37 +192,23 @@ function write(path, source, options) {
   further details. By default file will be open with an `'w'` flag and `'0666'`
   mode, alternatively `options.flags` and `options.mode` strings may be used to
   override those defaults. By default file is written from the begining, but
-  this could be overridden via `options.start`. As result stream of 0 elements
+  this could be overridden via `options.start`. As result stream of 0 items
   is returned, which will end once write is complete. All errors will propagate
   to a resulting stream.
   **/
   options = options || {}
   options.flags = options.flags || 'w'
-  return streamer.flatten(streamer.map(function(fd) {
-    return streamer.append(streamer.handle(function onError(error) {
-      return streamer.append(closer(fd), streamer.stream(error, null))
-    }, writter(fd, source, options)), closer(fd))
-  }, opener(path, options)))
-}
-exports.write = write
-
-function makeDirectory(path, options) {
-  var mode = options && options.mode
-  function stream(next) {
-    binding.mkdir(path, mode, function onMake(error) {
-      error ? next(error) : streamer.empty(next)
+  var file = typeof(path) === 'string' ? open(path, options) : path
+  var result = ((streamer.run.on)
+    (file)
+    (streamer.head)
+    (streamer.map, function opened(fd) {
+      return writter(fd, source, options)
     })
-  }
-}
-exports.makeDirectory = makeDirectory
+    (streamer.flatten))
+  result.file = file
 
-function removeDirectory(path) {
-  return function stream(next) {
-    binding.rmdir(path, function onRemove(error) {
-      error ? next(error) : streamer.empty(next)
-    })
-  }
+  return result
 }
-exports.removeDirectory = removeDirectory
 
 });
