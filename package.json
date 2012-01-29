@@ -19,7 +19,7 @@
     "repl-utils": ">=1.0.0"
   },
   "scripts": {
-    "test": "node tests/test-fs-streamer.js",
+    "test": "node tests/test-all.js",
     "repl": "node node_modules/repl-utils"
   },
   "dependencies": {
