@@ -15,17 +15,19 @@
     "url": "http://github.com/Gozala/fs-streamer/issues/"
   },
   "devDependencies": {
-    "test": ">=0.0.10"
+    "test": ">=0.4.4",
+    "repl-utils": ">=1.0.0"
+  },
+  "scripts": {
+    "test": "node tests/test-fs-streamer.js",
+    "repl": "node node_modules/repl-utils"
   },
   "dependencies": {
     "streamer": ">=0.0.4"
   },
   "main": "./index.js",
   "engines": {
-    "node": "0.4.x"
-  },
-  "scripts": {
-    "test": "node tests/test-fs-streamer.js"
+    "node": ">=0.4.x"
   },
   "licenses": [{
     "type" : "MIT",
