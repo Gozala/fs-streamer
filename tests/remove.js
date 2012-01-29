@@ -8,7 +8,7 @@
 'use strict';
 
 var fs = require('../fs')
-var streamer = require('streamer')
+var streamer = require('streamer'), Stream = streamer.Stream
 var path = require('path')
 var root = path.join(path.dirname(module.filename), './fixtures/')
 var Assert = require('./assert').Assert
@@ -21,7 +21,7 @@ exports['test remove non-existing'] = function(expect, complete) {
 
 exports['test remove file'] = function(expect, complete) {
   var file = path.join('temp')
-  var createFile = fs.write(file, streamer.empty)
+  var createFile = fs.write(file, Stream.empty)
   var removeFile = fs.remove(file)
 
   expect(createFile).to.be.empty()

@@ -7,21 +7,18 @@
 
 'use strict';
 
-var on = require('streamer/core').on
 var BaseAssert = require('test').Assert;
 
 function runAsserts(assert, assertions) {
   if (!assertions.length) return
   var assertion = assertions.shift()
   var actual = []
-  on(assertion.actual)(function next(element) {
-    actual.push(element)
-  }, function stop(error) {
+  function stop(error) {
     var display = JSON.stringify(assertion.expected) || '';
     display = display.length > 60 ? display.substr(0, 60) + '...' : display
     assert.deepEqual(actual, assertion.expected,
                      !assertion.expected.length ? 'stream is empty' :
-                     'stream has expected elements: ' + display)
+                     'stream has expected items: ' + display)
 
     if (assertion.error) {
       assert.throws(function() {
@@ -31,9 +28,15 @@ function runAsserts(assert, assertions) {
       assert.ok(!error, 'stream stopped without error')
     }
 
-    if (assertion.task) assertion.task()
-    runAsserts(assert, assertions)
-  })
+    if (assertion.task) assertion.task(assert)
+    setTimeout(runAsserts, 1, assert, assertions)
+  }
+  assertion.actual.then(function next(stream) {
+    if (!stream) return stop()
+    actual.push(stream.head)
+    stream.tail.then(next, stop)
+  }, stop)
+  if (assertion.setup) assertion.setup()
 }
 
 function dsl(api) {
@@ -61,9 +64,15 @@ function dsl(api) {
 }
 
 var assert = dsl({
-  and: null,
-  have: null,
-  elements: null,
+  and: function and(setup) {
+    this.setup = setup
+  },
+  have: function have() {
+    this.expected = Array.prototype.slice.call(arguments)
+  },
+  items: function items() {
+    this.expected = Array.prototype.slice.call(arguments)
+  },
   expect: function expect(actual) {
     this.actual = actual
   },
@@ -109,15 +118,18 @@ exports.Assert = function Assert() {
   var assertions = []
   setTimeout(runAsserts, 10, test, assertions)
 
-  return function expect(actual) {
+  function expect(actual) {
     var assertion = {
       actual: actual,
       expected: [],
-      error: null
+      error: null,
+      expect: expect
     }
     assertions.push(assertion)
     return assert(assertion)
   }
+  expect.assert = test
+  return expect
 }
 
 });

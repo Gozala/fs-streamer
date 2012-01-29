@@ -30,19 +30,19 @@ exports['test read in buffers'] = function(expect, complete) {
     return { isBuffer: Buffer.isBuffer(buffer), string: buffer.toString() }
   }, stream)
 
-  expect(streamContent).elements.to.be({
+  expect(streamContent).items.to.be({
     isBuffer: true,
     string: 'xyz\n'
   }).then(complete)
 }
 
-exports['test encoding raw streams buffers'] = function(expect, complete) {
-  var stream = fs.read(path.join(root, 'x.txt'), { encoding: 'raw' })
+exports['test encoding binary streams buffers'] = function(expect, complete) {
+  var stream = fs.read(path.join(root, 'x.txt'), { encoding: 'binary' })
   var streamContent = streamer.map(function(buffer) {
     return { isBuffer: Buffer.isBuffer(buffer), string: buffer.toString() }
   }, stream)
 
-  expect(streamContent).elements.to.be({
+  expect(streamContent).items.to.be({
     isBuffer: true,
     string: 'xyz\n'
   }).then(complete)
@@ -54,7 +54,7 @@ exports['test read in chuncks'] = function(expect, complete) {
     size: 2
   })
 
-  expect(stream).elements.to.be('xy', 'z\n').then(complete)
+  expect(stream).items.to.be('xy', 'z\n').then(complete)
 }
 
 exports['test read with offset'] = function(expect, complete) {
@@ -74,7 +74,7 @@ exports['test read till'] = function(expect, complete) {
     end: 3
   }))
 
-  expect(stream).elements.to.be('y', 'z').and.then(complete)
+  expect(stream).items.to.be('y', 'z').and.then(complete)
 }
 
 exports['test read unexistning'] = function(expect, complete) {
@@ -88,7 +88,7 @@ exports['test read unicode'] = function(expect, complete) {
   for (var i = 10000; --i >= 0;) expected[i] = '\u2026'
   var stream = streamer.map(String, fs.read(path.join(root, 'elipses.txt')))
 
-  expect(stream).elements.to.be(expected.join('')).then(complete)
+  expect(stream).items.to.be(expected.join('')).then(complete)
 }
 
 exports['test read empty'] = function(expect, complete) {
