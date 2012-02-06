@@ -22,11 +22,10 @@ exports['test remove non-existing'] = function(expect, complete) {
 exports['test remove file'] = function(expect, complete) {
   var file = path.join('temp')
   var createFile = fs.write(file, Stream.empty)
-  var removeFile = fs.remove(file)
 
-  expect(createFile).to.be.empty()
-  expect(removeFile).to.be.empty()
-  expect(removeFile).to.stop.with.an.error(/ENOENT/).then(complete)
+  expect(createFile).to.be(0)
+  expect(fs.remove(file)).to.be.empty()
+  expect(fs.remove(file)).to.stop.with.an.error(/ENOENT/).then(complete)
 }
 
 if (module == require.main)

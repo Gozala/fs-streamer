@@ -18,16 +18,19 @@ exports['test write to file'] = function(assert, complete) {
   var file = path.join(root, 'write.txt')
   var content = '012345678910'
 
-  assert(fs.write(file, Stream(content))).to.an.empty()
+  assert(fs.write(file, Stream(content))).to.be(content.length)
   assert(streamer.map(String, fs.read(file))).to(content)
   assert(fs.remove(file)).to.an.empty().and.then(complete)
 }
 
 exports['test append / overwrite'] = function(expect, complete) {
   var file = path.join(root, 'append-overwrite.txt')
+  var initalContent = 'abcdefghijklmnopqrstuvwxyz'
 
-  var fileContent = fs.read(file, { encoding: 'utf-8' })
-  var initalWrite = fs.write(file, Stream('abcdefghijklmnopqrstuvwxyz'))
+  var fileContent = function() {
+    return fs.read(file, { encoding: 'utf-8' })
+  }
+  var initalWrite = fs.write(file, Stream(initalContent))
   var append = fs.write(file, Stream('123456'), {
     start: 10,
     flags: 'r+'
@@ -41,18 +44,18 @@ exports['test append / overwrite'] = function(expect, complete) {
     flags: 'r+'
   });
 
-  expect(initalWrite).to.be.empty()
-  expect(fileContent).to.be('abcdefghijklmnopqrstuvwxyz')
-  expect(append).to.be.empty()
-  expect(fileContent).to.be('abcdefghij123456qrstuvwxyz')
-  expect(overwrite).to.be.empty()
-  expect(fileContent).to.be('abcdefghij\u2026\u2026qrstuvwxyz')
-  expect(stupidOverwrite).to.be.empty()
-  expect(fileContent).to.be('boomefghij\u2026\u2026qrstuvwxyz')
+  expect(initalWrite).to.be(initalContent.length)
+  expect(fileContent()).to.be(initalContent)
+  expect(append).to.be(6)
+  expect(fileContent()).to.be('abcdefghij123456qrstuvwxyz')
+  expect(overwrite).to.be(Buffer('\u2026\u2026', 'utf-8').length)
+  expect(fileContent()).to.be('abcdefghij\u2026\u2026qrstuvwxyz')
+  expect(stupidOverwrite).to.be('boom'.length)
+  expect(fileContent()).to.be('boomefghij\u2026\u2026qrstuvwxyz')
   expect(fs.remove(file)).to.be.empty().then(complete)
 }
 
-/* TODO: Fix RangeError: Maximum call stack size exceeded
+/* TODO: Fix RangeError: Maximum call stack size exceeded */
 exports['test write a lot'] = function(expect, complete) {
   var N = 10240
   var file = path.join(root, 'out.txt')
@@ -61,7 +64,7 @@ exports['test write a lot'] = function(expect, complete) {
 
   var content = streamer.take(N, streamer.repeat(line))
 
-  expect(fs.write(file, content)).to.be.empty()
+  expect(fs.write(file, content)).to.be(N * line.length)
   expect(fs.read(file, {
     start: line.length * (N  - 4),
     size: line.length,
@@ -69,7 +72,6 @@ exports['test write a lot'] = function(expect, complete) {
   })).to.be(line, line, line, line)
   expect(fs.remove(file)).to.be.empty().then(complete)
 }
-*/
 
 exports['test write in base64'] = function(expect, complete) {
   var file = path.join(root, 'test.jpg')
@@ -96,7 +98,7 @@ exports['test write in base64'] = function(expect, complete) {
   var writeStream = fs.write(file, Stream(data), { encoding: 'base64' })
   var readStream = fs.read(file, { encoding: 'base64' })
 
-  expect(writeStream).to.be.empty()
+  expect(writeStream).to.be(Buffer(data, 'base64').length)
   expect(readStream).items.to.be(data.replace(/\n/g, ''))
   expect(fs.remove(file)).to.be.empty().and.then(complete)
 }
@@ -109,21 +111,24 @@ exports['test write mode'] = function(expect, complete) {
     encoding: 'utf-8'
   })
 
-  expect(stream).to.be.empty()
+  expect(stream).to.be(Buffer(content, 'utf-8').length)
   expect(fs.read(file, { encoding: 'utf8' })).to.be(content)
   expect(fs.remove(file)).to.be.empty().then(complete)
 }
 
 exports['test pipe write'] = function(expect, complete) {
   var sourceFile = path.join(root, 'y.txt')
+  var sourceContent = 'Hello streamer! How is life? Does all your tests pass?'
   var targetFile = path.join(root, 'piped.txt')
   var source = fs.read(sourceFile, { size: 7 })
-  var target = fs.read(targetFile, { encoding: 'utf-8'})
+  var targetContent = function() {
+    return fs.read(targetFile, { encoding: 'utf-8'})
+  }
   var pipe = fs.write(targetFile, source)
 
-  expect(target).to.have.an.error(/ENOENT/)
-  expect(pipe).to.be.empty()
-  expect(target).to.be('Hello streamer! How is life? Does all your tests pass?')
+  expect(targetContent()).to.have.an.error(/ENOENT/)
+  expect(pipe).to.be(sourceContent.length)
+  expect(targetContent()).to.be(sourceContent)
   expect(fs.remove(targetFile)).to.be.empty().and.then(complete)
 }
 
