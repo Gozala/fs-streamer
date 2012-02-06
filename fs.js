@@ -44,7 +44,7 @@ function list(path) {
 
 exports.remove = remove
 function remove(path) {
-  return streamer.promise(function() {
+  return streamer.future.lazy(function() {
     var deferred = streamer.defer()
     binding.unlink(path, function unlinked(error) {
       if (error) deferred.reject(error)
@@ -80,7 +80,7 @@ exports.open = open
 function open(path, options) {
   var flags = options && options.flags || 'r'
   var mode =  options && options.mode || '0666'
-  return streamer.promise(function() {
+  return streamer.future.lazy(function() {
     var deferred = streamer.defer()
     fs.open(path, flags, mode, function opened(error, fd) {
       if (error) deferred.reject(error)
@@ -172,13 +172,14 @@ function writter(fd, content, options) {
                                             : new Buffer(stream.head, encoding)
 
     if (!data.length) return writter(fd, stream.tail, options)
+
     var deferred = streamer.defer()
     binding.write(fd, data, 0, data.length, start, function wrote(error, count) {
-      if (error) deferred.reject(error)
-      else deferred.resolve(writter(fd, stream.tail, {
-        encoding: encoding,
-        start: start + count
-      }))
+      if (error) return deferred.reject(error)
+      deferred.resolve(Stream(count, writter(fd, stream.tail, {
+        start: start + count,
+        encoding: encoding
+      })))
     })
     return deferred.promise
   }, content)
@@ -205,7 +206,9 @@ function write(path, source, options) {
     (streamer.map, function opened(fd) {
       return writter(fd, source, options)
     })
-    (streamer.flatten))
+    (streamer.flatten)
+    (streamer.reduce, function(x, y) { return x + y }, 0))
+
   result.file = file
 
   return result
