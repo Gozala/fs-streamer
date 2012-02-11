@@ -142,10 +142,9 @@ via.open = function viaopen(path, options, f) {
   var file = open(path, options)
   return ((streamer.run)
     (via.file, file, f || options)
-    (streamer.finalize, close(file)))
+    (streamer.finalize, function() { return close(file) }))
 }
 exports.via = via
-}
 
 function reader(fd, options) {
   /**
