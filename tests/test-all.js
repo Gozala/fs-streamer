@@ -12,6 +12,7 @@ exports['test stat'] = require('./stat')
 exports['test remove'] = require('./remove')
 exports['test directory.remove'] = require('./make-dir')
 exports['test directory.make'] = require('./remove-dir')
+exports['test open / close'] = require('./open-close')
 exports['test read'] = require('./read')
 exports['test write'] = require('./write')
 
