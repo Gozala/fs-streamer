@@ -85,26 +85,22 @@ function remove(path) {
 }
 exports.remove = remove
 
-exports.makeDirectory = makeDirectory
 function makeDirectory(path, options) {
-  var mode = options && options.mode
-  var deferred = streamer.defer()
-  binding.mkdir(path, mode, function made(error) {
-    if (error) deferred.reject(error)
-    else deferred.resolve(Stream.empty)
-  })
-  return deferred.promise
+  var mode = options && options.mode || parseInt('0777', 8)
+  return ((streamer.run)
+    (node.future.lazy, binding.mkdir, path, mode)
+    (node.apply, Stream.of))
 }
+exports.makeDirectory = makeDirectory
 
-exports.removeDirectory = removeDirectory
 function removeDirectory(path) {
-  var deferred = streamer.defer()
-  binding.rmdir(path, function removed(error) {
-    if (error) deferred.reject(error)
-    else deferred.resolve(Stream.empty)
-  })
-  return deferred.promise
+  return ((streamer.run)
+    (node.future.lazy, binding.rmdir, path)
+    (node.apply, Stream.of))
 }
+exports.removeDirectory = removeDirectory
+
+exports.directory = { make: makeDirectory, remove: removeDirectory }
 
 exports.open = open
 function open(path, options) {
