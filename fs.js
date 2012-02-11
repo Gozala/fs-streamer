@@ -147,36 +147,31 @@ via.open = function viaopen(path, options, f) {
 exports.via = via
 }
 
-exports.reader = reader
 function reader(fd, options) {
   /**
   Takes file descriptor and (optional) options object that may contain
   `size` per chunk, start position to start read form and end position
   to read to.
   **/
-  options = options || {}
-  var size = options.size || 64 * 1024
-  var start = options.start || 0
-  var end = options.end || Infinity
-  if (end <= start) return Stream.empty
 
+  var size = options && options.size || 64 * 1024
+  var start = options && options.start || 0
+  var end = options && options.end || Infinity
+  if (end <= start) return Stream.empty
   var buffer = Buffer(size)
-  var deferred = streamer.defer()
-  binding.read(fd, buffer, 0, size, start, function read(error, count) {
-    if (error) deferred.reject(error)
-    else if (count === 0) deferred.resolve(Stream.empty)
-    else deferred.resolve(Stream(buffer.slice(0, count), function rest() {
-      return reader(fd, {
+
+  return ((streamer.run)
+    (node.future.lazy, binding.read, fd, buffer, 0, size, start)
+    (node.apply, function(count) {
+      return count && Stream(buffer.slice(0, count), reader(fd, {
         size: size,
         start: start + count,
         end: end
-      })
+      }))
     }))
-  })
-  return deferred.promise
 }
+exports.reader = reader
 
-exports.read = read
 function read(path, options) {
   /**
   Returns stream of contents of the file under the given `path`. Optional
@@ -188,20 +183,14 @@ function read(path, options) {
   items are buffers of content, size of those chunks may be configured via
   `options.size` option.
   **/
-  options = options || {}
-  options.encoding = options.encoding || 'binary'
-  options.flags = options.flags || 'r'
-  var file = typeof(path) === 'string' ? open(path, options) : path
-  var content = ((streamer.run.on)
-    (file)
-    (streamer.head)
-    (streamer.map, function opened(fd) { return reader(fd, options) })
-    (streamer.flatten)
-    (streamer.map, decoder(options.encoding)))
 
-  content.file = file
-  return content
+  return ((streamer.run)
+    (via, path, options, function(fd) {
+      return reader(fd, options)
+    })
+    (streamer.map, decoder(options && options.encoding || 'binary')))
 }
+exports.read = read
 
 exports.writter = writter
 function writter(fd, content, options) {
