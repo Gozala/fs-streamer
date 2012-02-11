@@ -78,16 +78,10 @@ function list(path) {
     (node.apply, Stream.from))
 }
 
-exports.remove = remove
 function remove(path) {
-  return streamer.future.lazy(function() {
-    var deferred = streamer.defer()
-    binding.unlink(path, function unlinked(error) {
-      if (error) deferred.reject(error)
-      else deferred.resolve(Stream.empty)
-    })
-    return deferred.promise
-  })
+  return ((streamer.run)
+    (node.future.lazy, binding.unlink, path)
+    (node.apply, Stream.of))
 }
 exports.remove = remove
 

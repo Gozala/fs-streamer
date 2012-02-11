@@ -20,7 +20,7 @@ exports['test remove non-existing'] = function(expect, complete) {
 }
 
 exports['test remove file'] = function(expect, complete) {
-  var file = path.join('temp')
+  var file = path.join(root, 'temp')
   var createFile = fs.write(file, Stream.empty)
 
   expect(createFile).to.be(0)
