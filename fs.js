@@ -11,6 +11,46 @@ var fs = require('fs')
 var binding = process.binding('fs')
 var streamer = require('streamer/core'), Stream = streamer.Stream
 
+var call = Function.prototype.call
+// Convenience shortcut for Array.prototype.slice.call(args, n)
+var slice = call.bind(Array.prototype.slice)
+
+var node = {
+  future: function future(f) {
+    var deferred = streamer.defer()
+    f.apply(this, slice(arguments, 1).concat(function callback(error) {
+      if (error) deferred.reject(error)
+      else deferred.resolve(slice(arguments, 1))
+    }))
+    return deferred.promise
+  },
+  apply: function apply(f, promise) {
+    return streamer.promise(promise).then(function(array) {
+      return f.apply(f, array)
+    })
+  },
+  join: function(promises) {
+    return slice(promises).map(streamer.promise).reduce(function(items, item) {
+      return items.then(function(items) {
+        return item.then(function(item) {
+          return items.concat(item)
+        })
+      })
+    }, streamer.promise([]))
+  },
+  call: function call(f, arg1, arg2, arg3) {
+    return node.apply(f, node.join(slice(arguments, 1)))
+  }
+}
+
+node.future.lazy = function lazy(f) {
+  var result, args = slice(arguments)
+  return { then: function then(resolve, reject) {
+    result = result || node.future.apply(node.future, args)
+    return result.then(resolve, reject)
+  }}
+}
+
 function identity(value) { return value }
 
 exports.decoder = decoder
