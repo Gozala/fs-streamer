@@ -73,12 +73,9 @@ function stat(path) {
 
 exports.list = list
 function list(path) {
-  var deferred = streamer.defer()
-  binding.readdir(path, function read(error, entries) {
-    if (error) deferred.reject(error)
-    else deferred.resolve(Stream.from(entries))
-  })
-  return deferred.promise
+  return ((streamer.run)
+    (node.future.lazy, binding.readdir, path)
+    (node.apply, Stream.from))
 }
 
 exports.remove = remove
