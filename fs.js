@@ -62,14 +62,13 @@ function decoder(encoding) {
 
 exports.stat = stat
 function stat(path) {
-  var deferred = streamer.defer()
-  binding.stat(path, function stated(error, stats) {
-    if (error) deferred.reject(error)
-    else deferred.resolve(Stream(Object.create(stats, {
-      path: { value: path, enumerable: true }
-    })))
-  })
-  return deferred.promise
+  return ((streamer.run)
+    (node.future.lazy, binding.stat, path)
+    (node.apply, function onstat(stats) {
+      return Stream(Object.create(stats, {
+        path: { value: path, enumerable: true }
+      }))
+    }))
 }
 
 exports.list = list
