@@ -18,10 +18,14 @@ var slice = call.bind(Array.prototype.slice)
 var node = {
   future: function future(f) {
     var deferred = streamer.defer()
-    f.apply(this, slice(arguments, 1).concat(function callback(error) {
-      if (error) deferred.reject(error)
-      else deferred.resolve(slice(arguments, 1))
-    }))
+    try {
+      f.apply(this, slice(arguments, 1).concat(function callback(error) {
+        if (error) deferred.reject(error)
+        else deferred.resolve(slice(arguments, 1))
+      }))
+    } catch (error) {
+      deferred.reject(error)
+    }
     return deferred.promise
   },
   apply: function apply(f, promise) {
