@@ -108,33 +108,43 @@ exports.directory = { make: makeDirectory, remove: removeDirectory }
 
 exports.open = open
 function open(path, options) {
-  var flags = options && options.flags || 'r'
-  var mode =  options && options.mode || '0666'
-  return streamer.future.lazy(function() {
-    var deferred = streamer.defer()
-    fs.open(path, flags, mode, function opened(error, fd) {
-      if (error) deferred.reject(error)
-      else deferred.resolve(Stream(fd))
-    })
-    return deferred.promise
-  })
+  return ((streamer.run)
+    (node.future.lazy,
+      fs.open,
+      path,
+      (options && options.flags) || 'r',
+      (options && options.mode) || '0666')
+    (node.apply, Stream.of))
 }
 
 exports.close = close
-function close(stream) {
+function close(file) {
   /**
   Takes file descriptor and returns stream that closes given descriptor on
   stream consumption and either propagates close error to the consumer or
   reaches end.
   **/
-  return streamer.flatten(streamer.map(function(fd) {
-    var deferred = streamer.defer()
-    binding.close(fd, function closed(error) {
-      if (error) deferred.reject(error)
-      else deferred.resolve(Stream.empty)
-    })
-    return deferred.promise
-  }, stream))
+  return ((via.file)
+    (file, function(fd) {
+      return ((streamer.run)
+        (node.future.lazy, binding.close, fd)
+        (node.apply, Stream.of))
+    }))
+}
+
+function via(file, f) {}
+via.file = function viafile(file, f) {
+  return (streamer.run.on(file)
+    (node.call, function(stream) { return stream.head })
+    (node.call, f))
+}
+via.open = function viaopen(path, options, f) {
+  var file = open(path, options)
+  return ((streamer.run)
+    (via.file, file, f || options)
+    (streamer.finalize, close(file)))
+}
+exports.via = via
 }
 
 exports.reader = reader
