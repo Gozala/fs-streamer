@@ -132,7 +132,10 @@ function close(file) {
     }))
 }
 
-function via(file, f) {}
+function via(file, options, f) {
+  return typeof(file) === 'string' ? via.open(file, options, f)
+                                   : via.file(file, f || options)
+}
 via.file = function viafile(file, f) {
   return (streamer.run.on(file)
     (node.call, function(stream) { return stream.head })
