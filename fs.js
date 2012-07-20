@@ -46,6 +46,7 @@ var node = {
     return node.apply(f, node.join(slice(arguments, 1)))
   }
 }
+exports.node = node
 
 node.future.lazy = function lazy(f) {
   var result, args = slice(arguments)
@@ -186,10 +187,9 @@ function read(path, options) {
   `options.size` option.
   **/
 
+  // TODO: Figure out way to pass options to the reader.
   return ((streamer.run)
-    (via, path, options, function(fd) {
-      return reader(fd, options)
-    })
+    (via, path, options, function(fd) { return reader(fd, options) })
     (streamer.map, decoder(options && options.encoding || 'binary')))
 }
 exports.read = read
@@ -198,22 +198,21 @@ exports.writter = writter
 function writter(fd, content, options) {
   var start = options.start || 0
   var encoding = options.encoding || 'utf-8'
-  return streamer.edit(function(stream) {
-    var data = Buffer.isBuffer(stream.head) ? stream.head
-                                            : new Buffer(stream.head, encoding)
-
-    if (!data.length) return writter(fd, stream.tail, options)
-
-    var deferred = streamer.defer()
-    binding.write(fd, data, 0, data.length, start, function wrote(error, count) {
-      if (error) return deferred.reject(error)
-      deferred.resolve(Stream(count, writter(fd, stream.tail, {
-        start: start + count,
-        encoding: encoding
-      })))
+  return ((streamer.run.on)
+    (content)
+    (streamer.map, function(chunk) {
+      return Buffer.isBuffer(chunk) ? chunk : new Buffer(chunk, encoding)
     })
-    return deferred.promise
-  }, content)
+    (streamer.edit, function(stream) {
+      return ((streamer.run)
+        (node.future.lazy, binding.write, fd, stream.head, 0, stream.head.length, start)
+        (node.apply, function(count) {
+          return Stream(count, writter(fd, stream.tail, {
+            start: start + count,
+            encoding: encoding
+          }))
+        }))
+    }))
 }
 
 exports.write = write
@@ -230,19 +229,12 @@ function write(path, source, options) {
   **/
   options = options || {}
   options.flags = options.flags || 'w'
-  var file = typeof(path) === 'string' ? open(path, options) : path
-  var result = ((streamer.run.on)
-    (file)
-    (streamer.head)
-    (streamer.map, function opened(fd) {
-      return writter(fd, source, options)
-    })
-    (streamer.flatten)
-    (streamer.reduce, function(x, y) { return x + y }, 0))
-
-  result.file = file
-
-  return result
+  return ((streamer.run)
+    (via, path, options, function opened(fd) {
+      return ((streamer.run)
+        (writter, fd, source, options)
+        (streamer.reduce, function(x, y) { return x + y }, 0))
+    }))
 }
 
 });
